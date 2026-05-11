@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { UserProfile } from '@/types'
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL      || 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
-)
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseUrl = rawUrl.startsWith('http') ? rawUrl.replace(/\/+$/, '').split('/rest/')[0] : 'https://placeholder.supabase.co'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // ── Profile CRUD ──────────────────────────────────
 
