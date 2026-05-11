@@ -14,8 +14,6 @@ interface Props {
   profile: UserProfile;
   onUpdate: (updates: Partial<UserProfile>) => void;
   onReset: () => void;
-  onSignOut?: () => void;
-  userEmail?: string;
 }
 
 // Map profile key → display label function
@@ -205,7 +203,7 @@ const EDITABLE_FIELDS: { key: string; label: string }[] = [
   { key: 'holdings',          label: '보유 종목' },
 ];
 
-export default function ProfileTab({ profile, onUpdate, onReset, onSignOut, userEmail }: Props) {
+export default function ProfileTab({ profile, onUpdate, onReset }: Props) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const summary = getProfileSummary(profile);
   const completedDate = new Date(profile.completedAt).toLocaleDateString('ko-KR', {
@@ -288,25 +286,12 @@ export default function ProfileTab({ profile, onUpdate, onReset, onSignOut, user
         ))}
       </div>
 
-      {/* Account */}
-      {userEmail && (
-        <div className="rounded-2xl px-4 py-3.5" style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
-          <p className="mb-0.5 text-[11px]" style={{ color: 'var(--t5)' }}>로그인된 계정</p>
-          <p className="text-[13px] font-semibold" style={{ color: 'var(--t2)' }}>{userEmail}</p>
-        </div>
-      )}
-
       {/* Reset */}
-      <div className="flex flex-col gap-2 pb-2">
+      <div className="pb-2">
         <button onClick={onReset} className="btn-ghost w-full rounded-xl py-3.5 text-sm" style={{ color: 'var(--t4)' }}>
           🔄 처음부터 다시 프로파일링
         </button>
-        {onSignOut && (
-          <button onClick={onSignOut} className="btn-ghost w-full rounded-xl py-3.5 text-sm" style={{ color: '#ff4757' }}>
-            로그아웃
-          </button>
-        )}
-        <p className="text-center text-[11px]" style={{ color: 'var(--t5)' }}>재설정하면 기존 프로필이 삭제돼요</p>
+        <p className="mt-1.5 text-center text-[11px]" style={{ color: 'var(--t5)' }}>재설정하면 기존 프로필이 삭제돼요</p>
       </div>
     </div>
   );
