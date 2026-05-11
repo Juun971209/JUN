@@ -189,7 +189,7 @@ export default function Page() {
             onUpdate={handleUpdate}
             onReset={handleReset}
             onSignOut={handleSignOut}
-            userEmail={session.user.email}
+            userEmail={session.user.email ?? (session.user.user_metadata?.name as string) ?? '카카오 사용자'}
           />
         )}
       </main>
