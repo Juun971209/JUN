@@ -80,8 +80,8 @@ const avKey = process.env.NEXT_PUBLIC_ALPHAVANTAGE_API_KEY ?? '';
 
 export const briefSource: BriefDataSource =
   src === 'alphavantage' && avKey ? new AlphaVantageBriefSource(avKey) :
-  src === 'yahoo'                 ? new YahooFinanceBriefSource()       :
-                                    new MockBriefSource();
+  src === 'mock'                  ? new MockBriefSource()               :
+                                    new YahooFinanceBriefSource();      // default: Yahoo Finance
 
 export async function fetchDailyBrief(sectors: SectorKey[]): Promise<DailyBriefData> {
   return briefSource.fetchBrief(sectors);

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProfile, ScoredStock, EntrySignal } from '@/types';
 import { getScoredStocks } from '@/lib/personalization';
+import { fetchLiveQuotes, QuoteMap } from '@/services/quotes';
+import { ALL_STOCKS } from '@/data/stocks';
 
 const ENTRY_COLOR: Record<EntrySignal['level'], string> = {
   good:    '#2ed573',
@@ -150,7 +152,21 @@ function StockCard({ item }: { item: ScoredStock }) {
 
 export default function StocksTab({ profile }: { profile: UserProfile }) {
   const [filter, setFilter] = useState<'all' | 'match' | 'nomatch'>('all');
-  const scored = getScoredStocks(profile);
+  const [quotes, setQuotes] = useState<QuoteMap>({});
+
+  useEffect(() => {
+    const tickers = ALL_STOCKS.map(s => s.ticker);
+    fetchLiveQuotes(tickers).then(setQuotes);
+  }, []);
+
+  const scored = getScoredStocks(profile).map(item => ({
+    ...item,
+    stock: {
+      ...item.stock,
+      price:  quotes[item.stock.ticker]?.price  ?? item.stock.price,
+      change: quotes[item.stock.ticker]?.change ?? item.stock.change,
+    },
+  }));
 
   const matched = scored.filter((s) => s.isMatch);
   const notMatched = scored.filter((s) => !s.isMatch);

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProfile, NewsItem, TodayPoint } from '@/types';
 import { MARKET_INDICES } from '@/data/news';
+import { fetchLiveQuotes, QuoteMap } from '@/services/quotes';
 import {
   getPersonalizedNews, getTodayPoints,
   getHoldingsFlow, getHoldingsNews, getSimilarStocks,
@@ -57,14 +58,47 @@ function TodayPointCard({ point, idx }: { point: TodayPoint; idx: number }) {
   );
 }
 
+// Maps MARKET_INDICES labels to Yahoo Finance tickers
+const INDEX_TICKER_MAP: Record<string, string> = {
+  'S&P 500': '^GSPC',
+  '나스닥':  '^IXIC',
+  '다우':    '^DJI',
+}
+
 export default function TodayTab({ profile }: { profile: UserProfile }) {
-  const todayPoints = getTodayPoints(profile);
-  const news = getPersonalizedNews(profile);
-  const holdingsFlow = getHoldingsFlow(profile);
+  const todayPoints  = getTodayPoints(profile);
+  const news         = getPersonalizedNews(profile);
   const holdingsNews = getHoldingsNews(profile);
   const similarStocks = getSimilarStocks(profile);
   const sectorLabels = profile.sectors.map((s) => SECTOR_LABEL[s] ?? s).join(' · ');
-  const hasHoldings = profile.holdings.length > 0;
+  const hasHoldings  = profile.holdings.length > 0;
+
+  const [quotes, setQuotes] = useState<QuoteMap>({});
+
+  useEffect(() => {
+    const holdingTickers  = profile.holdings;
+    const similarTickers  = similarStocks.map(s => s.ticker);
+    const indexTickers    = Object.values(INDEX_TICKER_MAP);
+    const all = [...new Set([...holdingTickers, ...similarTickers, ...indexTickers])];
+    fetchLiveQuotes(all).then(setQuotes);
+  }, [profile.holdings]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Overlay live data on static holdings flow
+  const holdingsFlow = getHoldingsFlow(profile).map(h => ({
+    ...h,
+    price:  quotes[h.ticker]?.price  ?? h.price,
+    change: quotes[h.ticker]?.change ?? h.change,
+    up:     quotes[h.ticker]?.up     ?? h.up,
+  }));
+
+  // Overlay live data on static market indices
+  const liveIndices = MARKET_INDICES.map(idx => {
+    const ticker = INDEX_TICKER_MAP[idx.label];
+    const live = ticker ? quotes[ticker] : undefined;
+    return live
+      ? { ...idx, value: live.price, change: live.change, up: live.up }
+      : idx;
+  });
 
   // Risk alert: conservative user holding high-risk stocks
   const highRiskHoldings = profile.holdings.filter((ticker) => {
@@ -85,7 +119,7 @@ export default function TodayTab({ profile }: { profile: UserProfile }) {
 
       {/* Market indices */}
       <div className="grid grid-cols-3 gap-2">
-        {MARKET_INDICES.map((idx) => (
+        {liveIndices.map((idx) => (
           <div key={idx.label} className="card rounded-[10px] p-2.5 text-center">
             <p className="mb-0.5 text-[9px]" style={{ color: 'var(--t5)' }}>{idx.label}</p>
             <p className="font-space text-sm font-bold">{idx.value}</p>
@@ -158,7 +192,8 @@ export default function TodayTab({ profile }: { profile: UserProfile }) {
               </p>
               <div className="flex flex-col gap-2">
                 {similarStocks.map((s) => {
-                  const isUp = s.change.startsWith('+');
+                  const liveChange = quotes[s.ticker]?.change ?? s.change;
+                  const isUp = liveChange.startsWith('+');
                   return (
                     <div key={s.ticker} className="card flex items-center gap-3 rounded-xl px-4 py-3">
                       <span className="text-xl">{s.logo}</span>
@@ -172,7 +207,7 @@ export default function TodayTab({ profile }: { profile: UserProfile }) {
                         <p className="truncate text-[11px]" style={{ color: 'var(--t5)' }}>{s.oneLiner}</p>
                       </div>
                       <p className="font-space text-[12px] font-bold" style={{ color: isUp ? '#2ed573' : '#ff4757' }}>
-                        {s.change}
+                        {liveChange}
                       </p>
                     </div>
                   );
