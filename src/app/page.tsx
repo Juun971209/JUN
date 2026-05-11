@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { UserProfile, Tab } from '@/types';
 import { saveProfile, loadProfile, clearProfile, getProfileSummary } from '@/lib/profile';
+import { supabase, loadCloudProfile, saveCloudProfile, deleteCloudProfile } from '@/lib/supabase';
+import LoginScreen from '@/components/auth/LoginScreen';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import MarketBadge from '@/components/shared/MarketBadge';
 import BottomNav from '@/components/shared/BottomNav';
@@ -15,22 +18,70 @@ import ProfileTab from '@/components/dashboard/ProfileTab';
 type Theme = 'dark' | 'light';
 
 export default function Page() {
-  const [mounted, setMounted] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [tab, setTab] = useState<Tab>('home');
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [mounted, setMounted]   = useState(false);
+  const [session, setSession]   = useState<Session | null>(null);
+  const [profile, setProfile]   = useState<UserProfile | null>(null);
+  const [tab, setTab]           = useState<Tab>('home');
+  const [theme, setTheme]       = useState<Theme>('dark');
+  const [syncing, setSyncing]   = useState(false);
 
-  // Load profile + theme from localStorage on mount
+  // ── Auth + profile init ──────────────────────────
   useEffect(() => {
-    const savedProfile = loadProfile();
     const savedTheme = (localStorage.getItem('mijang_theme') as Theme) ?? 'dark';
-
-    if (savedProfile) setProfile(savedProfile);
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
-    setMounted(true);
-  }, []);
 
+    // Get initial session
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      setSession(s);
+      if (s) {
+        await syncProfileFromCloud(s.user.id);
+      } else {
+        // No login — try localStorage fallback
+        const local = loadProfile();
+        if (local) setProfile(local);
+      }
+      setMounted(true);
+    });
+
+    // Listen for auth state changes (OAuth redirect, sign-out)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, s) => {
+        setSession(s);
+        if (s && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          await syncProfileFromCloud(s.user.id);
+        }
+        if (event === 'SIGNED_OUT') {
+          setProfile(null);
+        }
+      },
+    );
+
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function syncProfileFromCloud(userId: string) {
+    setSyncing(true);
+    try {
+      const cloud = await loadCloudProfile(userId);
+      if (cloud) {
+        setProfile(cloud);
+        saveProfile(cloud); // keep localStorage in sync
+      } else {
+        // New user — check localStorage migration
+        const local = loadProfile();
+        if (local) {
+          await saveCloudProfile(userId, local);
+          setProfile(local);
+        }
+        // else → onboarding will run
+      }
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  // ── Theme toggle ─────────────────────────────────
   const toggleTheme = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
@@ -38,28 +89,46 @@ export default function Page() {
     localStorage.setItem('mijang_theme', next);
   };
 
-  const handleOnboardingComplete = (p: UserProfile) => {
+  // ── Profile handlers ──────────────────────────────
+  const handleOnboardingComplete = async (p: UserProfile) => {
     saveProfile(p);
     setProfile(p);
+    if (session) await saveCloudProfile(session.user.id, p);
   };
 
-  const handleUpdate = (updates: Partial<UserProfile>) => {
+  const handleUpdate = async (updates: Partial<UserProfile>) => {
     if (!profile) return;
     const updated = { ...profile, ...updates };
     setProfile(updated);
     saveProfile(updated);
+    if (session) await saveCloudProfile(session.user.id, updated);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    clearProfile();
+    if (session) await deleteCloudProfile(session.user.id);
+    setProfile(null);
+    setTab('home');
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     clearProfile();
     setProfile(null);
     setTab('home');
   };
 
-  // Avoid hydration mismatch
-  if (!mounted) return null;
+  // ── Render ────────────────────────────────────────
+  if (!mounted || syncing) return null;
 
-  // Onboarding
+  if (!session) {
+    return (
+      <div data-theme={theme}>
+        <LoginScreen />
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="bg-bg min-h-screen">
@@ -84,7 +153,6 @@ export default function Page() {
               <span style={{ color: 'var(--t1)' }}>미장</span>
               <span className="text-accent">SCENE</span>
             </h1>
-            {/* Investor type badge */}
             <div className="mt-0.5 flex items-center gap-1.5">
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-bold"
@@ -115,7 +183,15 @@ export default function Page() {
         {tab === 'stocks'   && <StocksTab     profile={profile} />}
         {tab === 'briefing' && <DailyBriefTab profile={profile} />}
         {tab === 'quiz'     && <QuizTab />}
-        {tab === 'profile'  && <ProfileTab    profile={profile} onUpdate={handleUpdate} onReset={handleReset} />}
+        {tab === 'profile'  && (
+          <ProfileTab
+            profile={profile}
+            onUpdate={handleUpdate}
+            onReset={handleReset}
+            onSignOut={handleSignOut}
+            userEmail={session.user.email}
+          />
+        )}
       </main>
 
       <BottomNav tab={tab} setTab={setTab} />
