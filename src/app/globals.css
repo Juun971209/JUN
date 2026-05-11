@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/* ── Theme variables ─────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --surface: #09090f;
+  --surface-nav: rgba(12, 12, 20, 0.97);
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-border-alt: rgba(255, 255, 255, 0.08);
+  --card-hover: rgba(255, 255, 255, 0.07);
+  --card-sector: rgba(255, 255, 255, 0.06);
+  --t1: #ffffff;
+  --t2: rgba(255, 255, 255, 0.85);
+  --t3: rgba(255, 255, 255, 0.65);
+  --t4: rgba(255, 255, 255, 0.45);
+  --t5: rgba(255, 255, 255, 0.28);
+  --toggle-bg: rgba(255, 255, 255, 0.06);
+  --toggle-border: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --surface: #f0f0f8;
+  --surface-nav: rgba(245, 245, 252, 0.97);
+  --card-bg: rgba(255, 255, 255, 0.80);
+  --card-border: rgba(0, 0, 0, 0.07);
+  --card-border-alt: rgba(0, 0, 0, 0.09);
+  --card-hover: rgba(255, 255, 255, 1);
+  --card-sector: rgba(0, 0, 0, 0.06);
+  --t1: #0c0c1e;
+  --t2: rgba(12, 12, 30, 0.85);
+  --t3: rgba(12, 12, 30, 0.65);
+  --t4: rgba(12, 12, 30, 0.45);
+  --t5: rgba(12, 12, 30, 0.32);
+  --toggle-bg: rgba(0, 0, 0, 0.05);
+  --toggle-border: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Tailwind theme ──────────────────────────────── */
+@theme {
+  --color-bg: var(--surface);
+  --color-accent: #4ecdc4;
+  --color-accent2: #45b7d1;
+  --color-up: #2ed573;
+  --color-down: #ff4757;
+  --color-warn: #ffa502;
+}
+
+/* ── Base ───────────────────────────────────────── */
+body {
+  background: var(--surface);
+  color: var(--t1);
+  font-family: "Pretendard", "Apple SD Gothic Neo", -apple-system, sans-serif;
+}
+
+.font-space {
+  font-family: var(--font-space-mono), monospace;
+}
+
+/* ── Cards ──────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+}
+[data-theme="light"] .card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-accent {
+  background: rgba(78, 205, 196, 0.06);
+  border: 1px solid rgba(78, 205, 196, 0.14);
+  border-radius: 14px;
+}
+[data-theme="light"] .card-accent {
+  background: rgba(78, 205, 196, 0.09);
+  border-color: rgba(78, 205, 196, 0.22);
+}
+
+.card-hover {
+  transition: background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.card-hover:hover {
+  background: var(--card-hover);
+}
+[data-theme="light"] .card-hover:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Buttons ────────────────────────────────────── */
+.btn-gradient {
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+  color: #000;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s;
+}
+.btn-gradient:hover { opacity: 0.88; }
+
+.btn-ghost {
+  background: var(--toggle-bg);
+  border: 1px solid var(--toggle-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+.btn-ghost:hover { background: var(--card-hover); }
+
+/* ── Range slider ───────────────────────────────── */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--card-border-alt);
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(78, 205, 196, 0.45);
+  transition: transform 0.15s;
+}
+
+.slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+.slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 8px rgba(78, 205, 196, 0.45);
+}
+
+/* ── Animations ─────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
