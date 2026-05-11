@@ -35,6 +35,26 @@ export default function OnboardingFlow({ onComplete }: Props) {
     setAnimKey((k) => k + 1);
   }, [step]);
 
+  const goBack = () => {
+    if (step === 0) return;
+    const prevStep = step - 1;
+    const prevKey = ONBOARDING_STEPS[prevStep].key;
+    const prevVal = answers[prevKey];
+    // Restore previous step's selection state
+    if (Array.isArray(prevVal)) setMultiSelected(prevVal as string[]);
+    else if (typeof prevVal === 'number') {
+      const prevType = ONBOARDING_STEPS[prevStep].type;
+      if (prevType === 'slider-100') setSlider100Val(prevVal);
+      else {
+        const idx = ONBOARDING_STEPS[prevStep].options.findIndex(o => o.value === String(prevVal));
+        setSlider3Val(idx >= 0 ? idx : 2);
+      }
+    } else {
+      setSelected(prevVal as string ?? null);
+    }
+    setStep(prevStep);
+  };
+
   const advance = (newAnswers: Answers) => {
     setAnswers(newAnswers);
     if (step < TOTAL - 1) {
@@ -131,8 +151,19 @@ export default function OnboardingFlow({ onComplete }: Props) {
     <div className="flex min-h-screen flex-col bg-bg px-5">
       {/* Progress */}
       <div className="pt-12 pb-6">
-        <div className="mb-2 flex justify-between text-[11px]" style={{ color: 'var(--t5)' }}>
-          <span>{step + 1} / {TOTAL}</span>
+        <div className="mb-2 flex items-center justify-between text-[11px]" style={{ color: 'var(--t5)' }}>
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <button
+                onClick={goBack}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', color: 'var(--t4)', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                ← 이전
+              </button>
+            )}
+            <span>{step + 1} / {TOTAL}</span>
+          </div>
           <span className="text-accent">{Math.round(progress)}%</span>
         </div>
         <div className="h-[2px] rounded-full" style={{ background: 'var(--card-border)' }}>
